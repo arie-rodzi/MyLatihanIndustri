@@ -22,7 +22,7 @@ if 'user_id' not in st.session_state:
         if user_id:
             st.session_state.user_id = user_id
             st.success("Log masuk berjaya.")
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("Maklumat tidak sah.")
 else:
