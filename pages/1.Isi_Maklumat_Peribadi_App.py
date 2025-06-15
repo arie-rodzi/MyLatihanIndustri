@@ -1,7 +1,9 @@
-# Versi penuh Isi_Maklumat_Peribadi_App.py dengan semakan role dan borang
-isi_maklumat_peribadi_app_code = '''
 import streamlit as st
 import sqlite3
+import os
+
+# Pastikan folder database wujud
+os.makedirs("databased", exist_ok=True)
 
 st.set_page_config(page_title="Isi Maklumat Peribadi", layout="wide")
 st.title("📋 Isi Maklumat Peribadi")
@@ -13,11 +15,12 @@ if "user_role" not in st.session_state or st.session_state["user_role"] != "pela
 
 pelajar_id = st.session_state.get("user_id", "")
 
-conn = sqlite3.connect('database.db')
+# Sambung ke database
+conn = sqlite3.connect("databased/database.db")
 c = conn.cursor()
 
 # Cipta jadual jika belum wujud
-c.execute(\"""
+c.execute("""
     CREATE TABLE IF NOT EXISTS maklumat_pelajar (
         pelajar_id TEXT PRIMARY KEY,
         nama TEXT,
@@ -27,10 +30,10 @@ c.execute(\"""
         email TEXT,
         alamat TEXT
     )
-\""")
+""")
 conn.commit()
 
-# Semak sama ada data sudah wujud
+# Semak sama ada data pelajar sudah wujud
 c.execute("SELECT * FROM maklumat_pelajar WHERE pelajar_id=?", (pelajar_id,))
 existing = c.fetchone()
 
@@ -62,12 +65,3 @@ else:
                 conn.commit()
                 st.success("Maklumat berjaya dihantar.")
                 st.experimental_rerun()
-'''
-
-# Simpan sebagai fail siap pakai
-final_path = "/mnt/data/Isi_Maklumat_Peribadi_App.py"
-with open(final_path, "w") as f:
-    f.write(isi_maklumat_peribadi_app_code)
-
-final_path
-
