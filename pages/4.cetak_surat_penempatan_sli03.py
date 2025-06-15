@@ -11,7 +11,7 @@ if st.session_state.get("user_role") != "pelajar":
     st.stop()
 
 pelajar_id = st.session_state.get("user_id", "")
-template_path = "template/NS_SLI03.docx"
+template_path = "template/NS SLI-03 Surat Penempatan Latihan Industri di Organisasi.docx"
 output_docx = f"generated/surat_penempatan_{pelajar_id}.docx"
 os.makedirs("generated", exist_ok=True)
 
