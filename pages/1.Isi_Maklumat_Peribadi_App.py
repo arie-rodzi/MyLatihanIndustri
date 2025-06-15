@@ -16,7 +16,7 @@ if "user_role" not in st.session_state or st.session_state["user_role"] != "pela
 pelajar_id = st.session_state.get("user_id", "")
 
 # Sambung ke database
-conn = sqlite3.connect("database/latihan_industri.db")
+conn = sqlite3.connect("database/latihan_industri.final.db")
 c = conn.cursor()
 
 # Cipta jadual jika belum wujud
