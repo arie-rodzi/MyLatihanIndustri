@@ -14,9 +14,12 @@ if st.session_state.get("user_role") != "pelajar":
 
 # Dapatkan ID pelajar dari sesi
 pelajar_id = st.session_state.get("user_id", "")
+if not pelajar_id:
+    st.error("ID pelajar tidak dijumpai dalam sesi. Sila log masuk semula.")
+    st.stop()
 
 # Tetapan fail template dan direktori output
-template_path = "template/surat_penempatan_sli03.docx"
+template_path = "template/NS SLI-03 Surat Penempatan Latihan Industri di Organisasi.docx"
 output_dir = "generated"
 output_path = os.path.join(output_dir, f"surat_penempatan_{pelajar_id}.docx")
 
@@ -34,10 +37,6 @@ pelajar = c.fetchone()
 c.execute("SELECT * FROM maklumat_industri WHERE pelajar_id=?", (pelajar_id,))
 industri = c.fetchone()
 
-# Debug untuk semakan jika perlu
-# st.write("🔎 Debug - Pelajar:", pelajar)
-# st.write("🔎 Debug - Industri:", industri)
-
 # Semakan data wajib
 if not pelajar:
     st.warning("Maklumat pelajar tidak dijumpai. Sila lengkapkan Modul 2 dahulu.")
@@ -51,6 +50,10 @@ if not industri:
 if st.button("📄 Jana Surat Penempatan"):
     try:
         # Buka template Word
+        if not os.path.exists(template_path):
+            st.error(f"Template tidak dijumpai: {template_path}")
+            st.stop()
+
         doc = Document(template_path)
 
         # Isi tempat ganti
@@ -77,12 +80,14 @@ if st.button("📄 Jana Surat Penempatan"):
         # Simpan dokumen baru
         doc.save(output_path)
 
-        # Muat turun
+        # Butang muat turun
         with open(output_path, "rb") as f:
+            st.success("Surat penempatan berjaya dijana.")
             st.download_button(
                 label="📥 Muat Turun Surat Penempatan",
                 data=f,
-                file_name=f"Surat_Penempatan_{pelajar_id}.docx"
+                file_name=f"Surat_Penempatan_{pelajar_id}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
     except Exception as e:
         st.error(f"Ralat semasa menjana surat: {str(e)}")
