@@ -1,17 +1,75 @@
 import streamlit as st
+import sqlite3
+from docx import Document
+from io import BytesIO
+from datetime import date
 
-# Pastikan hanya pelajar boleh akses
+# Semakan login
 if st.session_state.get("user_role") != "pelajar":
     st.warning("Modul ini hanya untuk pelajar.")
     st.stop()
 
-# Tajuk modul
 st.set_page_config(page_title="Modul 2: Cetak Borang Permohonan", layout="wide")
 st.title("📄 Modul 2: Cetak Borang Permohonan Latihan Industri")
 
-st.write("Sila semak maklumat anda sebelum mencetak borang.")
+pelajar_id = st.session_state.get("user_id", "")
 
-# (Opsyenal) Butang untuk cetak borang sebagai PDF atau paparkan butang muat turun
-if st.button("Cetak Borang Permohonan"):
-    st.success("Borang permohonan telah dijana.")
-    st.download_button("Muat Turun Borang (PDF)", data="(isi nanti dengan fail PDF)", file_name="borang_permohonan.pdf")
+# Sambung ke database
+conn = sqlite3.connect("database/latihan_industri.db")
+c = conn.cursor()
+
+# Semak maklumat pelajar
+c.execute("SELECT nama, ic, program, email FROM maklumat_pelajar WHERE pelajar_id=?", (pelajar_id,))
+pelajar = c.fetchone()
+
+# Semak status kelulusan penyelaras
+c.execute("SELECT status_lulus, nama_penyelaras, email_penyelaras, kod_program, tarikh_lulus FROM status_permohonan WHERE pelajar_id=?", (pelajar_id,))
+status = c.fetchone()
+
+if not pelajar:
+    st.warning("Maklumat pelajar belum lengkap. Sila isi Modul 1 terlebih dahulu.")
+    st.stop()
+
+if not status or status[0] != "lulus":
+    st.info("Permohonan anda belum diluluskan oleh penyelaras program.")
+    st.stop()
+
+# Dapatkan data untuk surat
+nama, ic, program, email = pelajar
+status_lulus, nama_penyelaras, email_penyelaras, kod_program, tarikh_lulus = status
+
+# Gantian dalam surat
+today = date.today().strftime("%Y-%m-%d")
+doc = Document("templates/NS SLI01_DLI01_BLI02.docx")
+for p in doc.paragraphs:
+    p.text = p.text.replace("«NOMBOR_ID_PELAJAR»", pelajar_id)
+    p.text = p.text.replace("«NOMBOR_KAD_PENGENALAN»", ic)
+    p.text = p.text.replace("«NAMA_PENUH_HURUF_BESAR»", nama.upper())
+    p.text = p.text.replace("« NAMA_PROGRAM »", program)
+    p.text = p.text.replace("«TARIKH_SURAT»", today)
+    p.text = p.text.replace("«TARIKH_MULA_LI»", "2025-09-02")  # boleh automasi jika simpan dalam DB
+    p.text = p.text.replace("«TARIKH_TAMAT_LI»", "2025-12-20")
+    p.text = p.text.replace("«NAMA_PENYELARAS»", nama_penyelaras)
+    p.text = p.text.replace("«email_penyelaras»", email_penyelaras)
+    p.text = p.text.replace("«kod_pogram»", kod_program)
+    p.text = p.text.replace("«ALAMAT_EMEL»", email)
+
+# Simpan ke buffer
+buffer = BytesIO()
+doc.save(buffer)
+buffer.seek(0)
+
+# Papar surat dalam bentuk teks ringkas
+st.success("Permohonan anda telah diluluskan oleh penyelaras.")
+st.write("### Pratonton Ringkasan Surat")
+st.markdown(f"""
+**Nama:** {nama}  
+**No Pelajar:** {pelajar_id}  
+**Program:** {program}  
+**Tarikh Surat:** {today}  
+**Penyelaras:** {nama_penyelaras}  
+**Email Penyelaras:** {email_penyelaras}
+""")
+
+# Butang untuk muat turun
+st.download_button("📥 Muat Turun Surat Permohonan", data=buffer, file_name="Surat_Permohonan_LI.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
