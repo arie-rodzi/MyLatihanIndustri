@@ -2,87 +2,83 @@ import streamlit as st
 import sqlite3
 import os
 from docx import Document
+from docx2pdf import convert
 
-# Konfigurasi Streamlit
-st.set_page_config(page_title="Cetak Surat Penempatan (SLI03)", layout="wide")
+st.set_page_config(page_title="Modul 4: Cetak Surat Penempatan (SLI03)", layout="wide")
 st.title("📄 Modul 4: Cetak Surat Penempatan (SLI03)")
 
-# Semakan login pelajar
 if st.session_state.get("user_role") != "pelajar":
     st.warning("Modul ini hanya untuk pelajar.")
     st.stop()
 
-# ID pelajar dari sesi
 pelajar_id = st.session_state.get("user_id", "")
-if not pelajar_id:
-    st.error("ID pelajar tidak dijumpai dalam sesi.")
-    st.stop()
 
-# Laluan template dan output
-template_path = "templates/NS SLI-03 Surat Penempatan Latihan Industri di Organisasi.docx"
-output_dir = "generated"
-output_path = os.path.join(output_dir, f"surat_penempatan_{pelajar_id}.docx")
-os.makedirs(output_dir, exist_ok=True)
+template_path = "template/NS_SLI03.docx"
+output_docx = f"generated/surat_penempatan_{pelajar_id}.docx"
+output_pdf = f"generated/surat_penempatan_{pelajar_id}.pdf"
+os.makedirs("generated", exist_ok=True)
 
-# Sambungan ke pangkalan data
 conn = sqlite3.connect("database/latihan_industri.db")
 c = conn.cursor()
 
-# Ambil maklumat pelajar dan industri
 c.execute("SELECT * FROM maklumat_pelajar WHERE pelajar_id=?", (pelajar_id,))
 pelajar = c.fetchone()
 
 c.execute("SELECT * FROM maklumat_industri WHERE pelajar_id=?", (pelajar_id,))
 industri = c.fetchone()
 
-# Semakan data wajib
-if not pelajar:
-    st.warning("❌ Maklumat pelajar tidak dijumpai. Sila lengkapkan Modul 2.")
-    st.stop()
-if not industri:
-    st.warning("❌ Maklumat industri tidak dijumpai. Sila lengkapkan Modul 3.")
+if not pelajar or not industri:
+    st.warning("Sila lengkapkan maklumat pelajar dan industri dahulu.")
     st.stop()
 
-# Jana surat penempatan
-if st.button("📄 Jana Surat Penempatan"):
+gantian = {
+    "<<nama>>": pelajar[1],
+    "<<no_ic>>": pelajar[2],
+    "<<no_pelajar>>": pelajar[0],
+    "<<program>>": pelajar[3],
+    "<<syarikat>>": industri[1],
+    "<<alamat_syarikat>>": industri[2],
+    "<<pegawai>>": industri[3],
+    "<<telefon_pegawai>>": industri[5],
+    "<<emel_pegawai>>": industri[4],
+    "<<tarikh_mula>>": industri[6],
+    "<<tarikh_tamat>>": industri[7],
+}
+
+def replace_all_paragraphs(doc, replacements):
+    for p in doc.paragraphs:
+        for key, val in replacements.items():
+            if key in p.text:
+                inline = p.runs
+                for i in range(len(inline)):
+                    if key in inline[i].text:
+                        inline[i].text = inline[i].text.replace(key, str(val))
+
+def replace_all_tables(doc, replacements):
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for key, val in replacements.items():
+                    if key in cell.text:
+                        cell.text = cell.text.replace(key, str(val))
+
+if st.button("📄 Jana & Papar Surat Penempatan"):
     try:
-        if not os.path.exists(template_path):
-            st.error(f"❌ Template tidak dijumpai: {template_path}")
-            st.stop()
-
         doc = Document(template_path)
+        replace_all_paragraphs(doc, gantian)
+        replace_all_tables(doc, gantian)
+        doc.save(output_docx)
 
-        gantian = {
-            "<<nama>>": pelajar[1],
-            "<<no_ic>>": pelajar[2],
-            "<<no_pelajar>>": pelajar[0],
-            "<<program>>": pelajar[3],
-            "<<syarikat>>": industri[1],
-            "<<alamat_syarikat>>": industri[2],
-            "<<pegawai>>": industri[3],
-            "<<telefon_pegawai>>": industri[5],
-            "<<emel_pegawai>>": industri[4],
-            "<<tarikh_mula>>": industri[6],
-            "<<tarikh_tamat>>": industri[7],
-        }
+        # Convert to PDF
+        convert(output_docx, output_pdf)
 
-        # Gantian teks dalam semua perenggan
-        for p in doc.paragraphs:
-            for key, val in gantian.items():
-                if key in p.text:
-                    p.text = p.text.replace(key, str(val))
+        # Papar ringkasan surat
+        st.write("### 📑 Pratonton Kandungan Surat:")
+        for key, val in gantian.items():
+            st.write(f"- **{key}** → {val}")
 
-        # Simpan dokumen
-        doc.save(output_path)
-
-        # Butang muat turun
-        with open(output_path, "rb") as f:
-            st.success("✅ Surat penempatan berjaya dijana.")
-            st.download_button(
-                label="📥 Muat Turun Surat Penempatan",
-                data=f,
-                file_name=f"Surat_Penempatan_{pelajar_id}.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
+        # Muat turun PDF
+        with open(output_pdf, "rb") as f:
+            st.download_button("📥 Muat Turun Surat (PDF)", f, file_name=f"Surat_Penempatan_{pelajar_id}.pdf")
     except Exception as e:
-        st.error(f"Ralat semasa menjana surat: {str(e)}")
+        st.error(f"❌ Ralat semasa jana surat: {e}")
