@@ -1,8 +1,14 @@
 import streamlit as st
 import sqlite3
+import os
 
+# Lokasi fail database
 DB_FILE = 'database/latihan_industri.db'
 
+# Pastikan folder wujud
+os.makedirs("database", exist_ok=True)
+
+# Fungsi login
 def login(no_pelajar, katalaluan):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
@@ -11,9 +17,29 @@ def login(no_pelajar, katalaluan):
     conn.close()
     return result if result else None
 
+# Sediakan jadual users jika belum wujud
+def setup_users_table():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            pelajar_id TEXT PRIMARY KEY,
+            katalaluan TEXT NOT NULL,
+            peranan TEXT NOT NULL
+        )
+    ''')
+    # Contoh pengguna untuk login
+    c.execute("INSERT OR IGNORE INTO users VALUES (?, ?, ?)", ("2023123456", "1234", "pelajar"))
+    conn.commit()
+    conn.close()
+
+setup_users_table()
+
+# Konfigurasi halaman
 st.set_page_config(page_title="Sistem Latihan Industri", layout="wide")
 st.title("📘 Sistem Latihan Industri UiTM")
 
+# Log masuk
 if 'user_id' not in st.session_state:
     no_pelajar = st.text_input("No. Pelajar / ID")
     katalaluan = st.text_input("Katalaluan", type="password")
