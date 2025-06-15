@@ -3,6 +3,11 @@ import sqlite3
 from docx import Document
 from io import BytesIO
 from datetime import date
+from docx2pdf import convert
+import os
+from tempfile import NamedTemporaryFile
+from pdf2image import convert_from_path
+from PIL import Image
 
 # Semakan login
 if st.session_state.get("user_role") != "pelajar":
@@ -19,7 +24,7 @@ conn = sqlite3.connect("database/latihan_industri.db")
 c = conn.cursor()
 
 # Semak maklumat pelajar
-c.execute("SELECT nama, no_ic, kod_program, emel FROM maklumat_pelajar WHERE pelajar_id=?", (pelajar_id,))
+c.execute("SELECT nama, ic, program, email FROM maklumat_pelajar WHERE pelajar_id=?", (pelajar_id,))
 pelajar = c.fetchone()
 
 # Semak status kelulusan penyelaras
@@ -34,47 +39,40 @@ if not status or status[0] != "lulus":
     st.info("Permohonan anda belum diluluskan oleh penyelaras program.")
     st.stop()
 
-# Dapatkan data untuk surat
-nama, no_ic, kod_program, emel_pelajar = pelajar
-status_lulus, nama_penyelaras, email_penyelaras, kod_program_status, tarikh_lulus = status
-
-# Gantian dalam surat
+# Dapatkan data
+nama, ic, program, email = pelajar
+_, nama_penyelaras, email_penyelaras, kod_program, _ = status
 today = date.today().strftime("%Y-%m-%d")
-doc = Document("templates/NS_SLI01_DLI01_BLI02_FIXED.docx")
+
+# Buka dan isi template
+doc = Document("templates/NS SLI01_DLI01_BLI02.docx")
 for p in doc.paragraphs:
     p.text = p.text.replace("«NOMBOR_ID_PELAJAR»", pelajar_id)
-    p.text = p.text.replace("«NOMBOR_KAD_PENGENALAN»", no_ic)
+    p.text = p.text.replace("«NOMBOR_KAD_PENGENALAN»", ic)
     p.text = p.text.replace("«NAMA_PENUH_HURUF_BESAR»", nama.upper())
-    p.text = p.text.replace("«NAMA_PROGRAM»", kod_program)
+    p.text = p.text.replace("« NAMA_PROGRAM »", program)
     p.text = p.text.replace("«TARIKH_SURAT»", today)
-    p.text = p.text.replace("«TARIKH_MULA_LI»", "2025-09-02")  # boleh ambil dari DB
+    p.text = p.text.replace("«TARIKH_MULA_LI»", "2025-09-02")
     p.text = p.text.replace("«TARIKH_TAMAT_LI»", "2025-12-20")
     p.text = p.text.replace("«NAMA_PENYELARAS»", nama_penyelaras)
-    p.text = p.text.replace("«EMAIL_PENYELARAS»", email_penyelaras)
-    p.text = p.text.replace("«KOD_PROGRAM»", kod_program)
-    p.text = p.text.replace("«EMEL_PELAJAR»", emel_pelajar)
+    p.text = p.text.replace("«email_penyelaras»", email_penyelaras)
+    p.text = p.text.replace("«kod_pogram»", kod_program)
+    p.text = p.text.replace("«ALAMAT_EMEL»", email)
 
-# Simpan ke buffer
-buffer = BytesIO()
-doc.save(buffer)
-buffer.seek(0)
+# Simpan ke fail sementara .docx
+with NamedTemporaryFile(delete=False, suffix=".docx") as tmp_docx:
+    doc.save(tmp_docx.name)
 
-# Papar ringkasan
-st.success("Permohonan anda telah diluluskan oleh penyelaras.")
-st.write("### Pratonton Ringkasan Surat")
-st.markdown(f"""
-**Nama:** {nama}  
-**No Pelajar:** {pelajar_id}  
-**Program:** {kod_program}  
-**Tarikh Surat:** {today}  
-**Penyelaras:** {nama_penyelaras}  
-**Email Penyelaras:** {email_penyelaras}
-""")
+# Tukar ke PDF
+pdf_path = tmp_docx.name.replace(".docx", ".pdf")
+convert(tmp_docx.name, pdf_path)
 
-# Butang muat turun
-st.download_button(
-    "📥 Muat Turun Surat Permohonan",
-    data=buffer,
-    file_name="Surat_Permohonan_LI.docx",
-    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-)
+# Papar PDF sebagai imej
+images = convert_from_path(pdf_path)
+st.write("### Pratonton Surat Permohonan (PDF)")
+for img in images:
+    st.image(img, use_column_width=True)
+
+# Muat turun PDF
+with open(pdf_path, "rb") as pdf_file:
+    st.download_button("📥 Muat Turun Surat (PDF)", data=pdf_file, file_name="Surat_Permohonan_LI.pdf", mime="application/pdf")
