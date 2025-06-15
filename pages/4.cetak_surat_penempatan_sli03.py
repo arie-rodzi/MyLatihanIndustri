@@ -3,30 +3,28 @@ import sqlite3
 import os
 from docx import Document
 
-# Konfigurasi awal
+# Konfigurasi Streamlit
 st.set_page_config(page_title="Cetak Surat Penempatan (SLI03)", layout="wide")
 st.title("📄 Modul 4: Cetak Surat Penempatan (SLI03)")
 
-# Semak sama ada pelajar telah login
+# Semakan login pelajar
 if st.session_state.get("user_role") != "pelajar":
     st.warning("Modul ini hanya untuk pelajar.")
     st.stop()
 
-# Dapatkan ID pelajar dari sesi
+# ID pelajar dari sesi
 pelajar_id = st.session_state.get("user_id", "")
 if not pelajar_id:
-    st.error("ID pelajar tidak dijumpai dalam sesi. Sila log masuk semula.")
+    st.error("ID pelajar tidak dijumpai dalam sesi.")
     st.stop()
 
-# Tetapan fail template dan direktori output
-template_path = "template/NS SLI-03 Surat Penempatan Latihan Industri di Organisasi.docx"
+# Laluan template dan output
+template_path = "templates/NS SLI-03 Surat Penempatan Latihan Industri di Organisasi.docx"
 output_dir = "generated"
 output_path = os.path.join(output_dir, f"surat_penempatan_{pelajar_id}.docx")
-
-# Cipta direktori jika belum wujud
 os.makedirs(output_dir, exist_ok=True)
 
-# Sambung ke pangkalan data
+# Sambungan ke pangkalan data
 conn = sqlite3.connect("database/latihan_industri.db")
 c = conn.cursor()
 
@@ -39,24 +37,21 @@ industri = c.fetchone()
 
 # Semakan data wajib
 if not pelajar:
-    st.warning("Maklumat pelajar tidak dijumpai. Sila lengkapkan Modul 2 dahulu.")
+    st.warning("❌ Maklumat pelajar tidak dijumpai. Sila lengkapkan Modul 2.")
     st.stop()
-
 if not industri:
-    st.warning("Maklumat industri tidak dijumpai. Sila lengkapkan Modul 3 dahulu.")
+    st.warning("❌ Maklumat industri tidak dijumpai. Sila lengkapkan Modul 3.")
     st.stop()
 
-# Butang jana surat
+# Jana surat penempatan
 if st.button("📄 Jana Surat Penempatan"):
     try:
-        # Buka template Word
         if not os.path.exists(template_path):
-            st.error(f"Template tidak dijumpai: {template_path}")
+            st.error(f"❌ Template tidak dijumpai: {template_path}")
             st.stop()
 
         doc = Document(template_path)
 
-        # Isi tempat ganti
         gantian = {
             "<<nama>>": pelajar[1],
             "<<no_ic>>": pelajar[2],
@@ -71,18 +66,18 @@ if st.button("📄 Jana Surat Penempatan"):
             "<<tarikh_tamat>>": industri[7],
         }
 
-        # Ganti dalam semua perenggan
+        # Gantian teks dalam semua perenggan
         for p in doc.paragraphs:
             for key, val in gantian.items():
                 if key in p.text:
                     p.text = p.text.replace(key, str(val))
 
-        # Simpan dokumen baru
+        # Simpan dokumen
         doc.save(output_path)
 
         # Butang muat turun
         with open(output_path, "rb") as f:
-            st.success("Surat penempatan berjaya dijana.")
+            st.success("✅ Surat penempatan berjaya dijana.")
             st.download_button(
                 label="📥 Muat Turun Surat Penempatan",
                 data=f,
