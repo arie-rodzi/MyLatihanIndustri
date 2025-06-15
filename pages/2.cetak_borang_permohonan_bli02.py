@@ -1,5 +1,3 @@
-# Save the corrected full version of the Streamlit app for Modul 2
-corrected_code = '''
 import streamlit as st
 import sqlite3
 from docx import Document
@@ -49,7 +47,7 @@ for p in doc.paragraphs:
     p.text = p.text.replace("«NAMA_PENUH_HURUF_BESAR»", nama.upper())
     p.text = p.text.replace("«NAMA_PROGRAM»", kod_program)
     p.text = p.text.replace("«TARIKH_SURAT»", today)
-    p.text = p.text.replace("«TARIKH_MULA_LI»", "2025-09-02")  # boleh automasi
+    p.text = p.text.replace("«TARIKH_MULA_LI»", "2025-09-02")  # boleh ambil dari DB
     p.text = p.text.replace("«TARIKH_TAMAT_LI»", "2025-12-20")
     p.text = p.text.replace("«NAMA_PENYELARAS»", nama_penyelaras)
     p.text = p.text.replace("«EMAIL_PENYELARAS»", email_penyelaras)
@@ -61,7 +59,7 @@ buffer = BytesIO()
 doc.save(buffer)
 buffer.seek(0)
 
-# Papar surat dalam bentuk ringkasan
+# Papar ringkasan
 st.success("Permohonan anda telah diluluskan oleh penyelaras.")
 st.write("### Pratonton Ringkasan Surat")
 st.markdown(f"""
@@ -74,14 +72,9 @@ st.markdown(f"""
 """)
 
 # Butang muat turun
-st.download_button("📥 Muat Turun Surat Permohonan", data=buffer,
-                   file_name="Surat_Permohonan_LI.docx",
-                   mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-'''
-
-# Save to file
-file_path = "/mnt/data/2_cetak_borang_permohonan_bli02.py"
-with open(file_path, "w", encoding="utf-8") as f:
-    f.write(corrected_code)
-
-file_path
+st.download_button(
+    "📥 Muat Turun Surat Permohonan",
+    data=buffer,
+    file_name="Surat_Permohonan_LI.docx",
+    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+)
