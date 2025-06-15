@@ -1,4 +1,3 @@
-
 import streamlit as st
 import sqlite3
 import pandas as pd
@@ -13,7 +12,8 @@ if st.session_state.get("user_role") != "pelajar":
 
 pelajar_id = st.session_state.get("user_id", "")
 
-conn = sqlite3.connect("database.db")
+# Sambung ke database sebenar
+conn = sqlite3.connect("database/latihan_industri.db")
 c = conn.cursor()
 
 # Cipta jadual jika belum wujud
@@ -35,7 +35,12 @@ with st.form("logbook_form"):
 # Papar semua logbook pelajar
 st.markdown("---")
 st.subheader("📖 Paparan Semua Logbook")
-df = pd.read_sql_query("SELECT minggu, aktiviti, tarikh_submit FROM logbook WHERE pelajar_id=? ORDER BY minggu", conn, params=(pelajar_id,))
+
+df = pd.read_sql_query(
+    "SELECT minggu, aktiviti, tarikh_submit FROM logbook WHERE pelajar_id=? ORDER BY minggu",
+    conn,
+    params=(pelajar_id,)
+)
 if not df.empty:
     df["minggu"] = df["minggu"].astype(int)
     st.dataframe(df, use_container_width=True)
