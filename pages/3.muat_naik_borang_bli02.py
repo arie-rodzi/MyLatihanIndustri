@@ -1,10 +1,11 @@
-
+# Simpan fail Module 3: Muat Naik BLI-02 & Isi Maklumat Industri sebagai .py
+module_3_code = """
 import streamlit as st
 import sqlite3
 import os
 
 st.set_page_config(page_title="Muat Naik BLI02 & Maklumat Industri", layout="wide")
-st.title("📤 Muat Naik Borang BLI-02 dan Isi Maklumat Industri")
+st.title("📤 Modul 3: Muat Naik Borang BLI-02 dan Isi Maklumat Industri")
 
 if st.session_state.get("user_role") != "pelajar":
     st.warning("Modul ini hanya untuk pelajar.")
@@ -14,11 +15,11 @@ pelajar_id = st.session_state.get("user_id", "")
 upload_dir = "uploaded/bli02"
 os.makedirs(upload_dir, exist_ok=True)
 
-conn = sqlite3.connect("database.db")
+conn = sqlite3.connect("database/latihan_industri.db")
 c = conn.cursor()
 
-# Cipta jadual maklumat industri
-c.execute("""
+# Cipta jadual maklumat_industri jika belum wujud
+c.execute(\"""
     CREATE TABLE IF NOT EXISTS maklumat_industri (
         pelajar_id TEXT PRIMARY KEY,
         nama_syarikat TEXT,
@@ -30,16 +31,16 @@ c.execute("""
         tarikh_tamat TEXT,
         filename TEXT
     )
-""")
+\""")
 conn.commit()
 
-# Semak sama ada data sudah ada
+# Semak sama ada data sudah wujud
 c.execute("SELECT * FROM maklumat_industri WHERE pelajar_id=?", (pelajar_id,))
 row = c.fetchone()
 
 if row:
     st.success("Maklumat industri telah dihantar.")
-    st.write("### Maklumat Syarikat Tersimpan")
+    st.write("### ✅ Maklumat Syarikat Tersimpan")
     st.write(f"**Nama Syarikat:** {row[1]}")
     st.write(f"**Alamat:** {row[2]}")
     st.write(f"**Nama Pegawai:** {row[3]}")
@@ -47,7 +48,7 @@ if row:
     st.write(f"**Telefon Pegawai:** {row[5]}")
     st.write(f"**Tarikh Mula:** {row[6]}")
     st.write(f"**Tarikh Tamat:** {row[7]}")
-    st.markdown(f"[Muat Turun Borang BLI-02]({upload_dir}/{row[8]})")
+    st.markdown(f"[📄 Muat Turun Borang BLI-02]({upload_dir}/{row[8]})")
 else:
     with st.form("borang_bli02"):
         nama_syarikat = st.text_input("Nama Syarikat")
@@ -68,9 +69,9 @@ else:
                 filepath = os.path.join(upload_dir, filename)
                 with open(filepath, "wb") as f:
                     f.write(uploaded_file.getbuffer())
-                c.execute("""
+                c.execute(\"""
                     INSERT INTO maklumat_industri VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
+                \""", (
                     pelajar_id, nama_syarikat, alamat, nama_pegawai,
                     emel_pegawai, telefon_pegawai,
                     str(tarikh_mula), str(tarikh_tamat),
@@ -79,3 +80,9 @@ else:
                 conn.commit()
                 st.success("Maklumat dan fail berjaya dihantar.")
                 st.experimental_rerun()
+"""
+
+with open("/mnt/data/3_Muat_Naik_BLI02.py", "w") as f:
+    f.write(module_3_code)
+
+"/mnt/data/3_Muat_Naik_BLI02.py"
