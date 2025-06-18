@@ -48,8 +48,9 @@ docx_path = os.path.join(folder_path, f"permohonan_{pelajar_id}.docx")
 pdf_path = os.path.join(folder_path, f"permohonan_{pelajar_id}.pdf")
 
 # Gantian template
-template_path = "templates/NS_SLI01_DLI01_BLI02_FIXED.docx
+template_path = "templates/NS_SLI01_DLI01_BLI02_FIXED.docx"
 doc = Document(template_path)
+
 
 for p in doc.paragraphs:
     p.text = p.text.replace("«NOMBOR_ID_PELAJAR»", pelajar_id)
