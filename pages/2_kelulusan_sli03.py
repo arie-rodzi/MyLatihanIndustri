@@ -1,7 +1,3 @@
-from pathlib import Path
-
-# Versi dibaiki: Tambah kolum `tarikh_sli03` jika belum wujud
-sli03_fixed_code = '''
 import streamlit as st
 import sqlite3
 from datetime import datetime
@@ -11,17 +7,19 @@ import os
 st.set_page_config(page_title="Kelulusan SLI-03", layout="wide")
 st.title("📄 Kelulusan Surat Penempatan Latihan Industri (SLI-03)")
 
+# Semakan peranan
 if "user_role" not in st.session_state or st.session_state["user_role"] != "penyelaras":
     st.warning("Modul ini hanya untuk penyelaras.")
     st.stop()
 
+# Sambung ke pangkalan data
 conn = sqlite3.connect("database/latihan_industri.final.db")
 c = conn.cursor()
 
 upload_dir = "uploaded/bli02"
 
 # Pastikan jadual wujud
-c.execute(\"""
+c.execute("""
     CREATE TABLE IF NOT EXISTS status_permohonan (
         pelajar_id TEXT PRIMARY KEY,
         status_lulus TEXT,
@@ -29,7 +27,7 @@ c.execute(\"""
         status_sli03 TEXT,
         status_bli02 TEXT
     )
-\""")
+""")
 conn.commit()
 
 # Tambah kolum tarikh_sli03 jika belum wujud
@@ -38,20 +36,20 @@ try:
 except sqlite3.OperationalError:
     pass  # Kolum mungkin sudah wujud
 
-# Ambil semua pelajar
+# Ambil senarai pelajar
 c.execute("SELECT pelajar_id, nama FROM maklumat_pelajar")
 pelajar_list = c.fetchall()
 
 for pelajar_id, nama in pelajar_list:
     with st.expander(f"{nama} ({pelajar_id})", expanded=False):
-        # SLI-01 check
+        # Semak status kelulusan SLI-01
         c.execute("SELECT status_lulus, status_sli03, tarikh_sli03 FROM status_permohonan WHERE pelajar_id=?", (pelajar_id,))
         permohonan = c.fetchone()
         if not permohonan or permohonan[0] != "LULUS":
             st.warning("❌ SLI-01 belum diluluskan.")
             continue
 
-        # Maklumat industri check
+        # Semak maklumat BLI-02
         c.execute("SELECT * FROM maklumat_industri WHERE pelajar_id=?", (pelajar_id,))
         industry = c.fetchone()
         if not industry:
@@ -67,11 +65,13 @@ for pelajar_id, nama in pelajar_list:
         st.write(f"**Telefon Pegawai:** {industry[5]}")
         st.write(f"**Tarikh Mula:** {industry[6]}")
         st.write(f"**Tarikh Tamat:** {industry[7]}")
+
+        # Lampirkan fail BLI-02 jika wujud
         file_path = os.path.join(upload_dir, industry[8])
         if os.path.exists(file_path):
             st.markdown(f"[📄 Muat Turun BLI-02]({file_path})")
 
-        # Status semasa
+        # Status SLI-03 semasa
         status_sli03 = permohonan[1]
         tarikh_sli03 = permohonan[2]
         if status_sli03 == "LULUS":
@@ -79,7 +79,7 @@ for pelajar_id, nama in pelajar_list:
         else:
             st.info("❌ SLI-03 belum diluluskan")
 
-        # Butang kelulusan
+        # Butang untuk meluluskan
         if st.button(f"✅ Luluskan SLI-03 untuk {nama}", key=f"sli03_{pelajar_id}"):
             tz = pytz.timezone("Asia/Kuala_Lumpur")
             now_malaysia = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
@@ -90,9 +90,3 @@ for pelajar_id, nama in pelajar_list:
             st.rerun()
 
 conn.close()
-'''
-
-# Simpan fail versi tetap
-file_path = Path("/mnt/data/2_kelulusan_sli03.py")
-file_path.write_text(sli03_fixed_code)
-file_path.name
