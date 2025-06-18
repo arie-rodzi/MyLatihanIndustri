@@ -41,4 +41,5 @@ else:
 
     if st.button("Log Keluar"):
         st.session_state.clear()
-        st.experimental_rerun()
+        sst.rerun()
+
