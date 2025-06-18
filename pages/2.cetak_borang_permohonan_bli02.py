@@ -49,7 +49,7 @@ replacements = {
     "«TARIKH_TAMAT_LI»": "31/3/2026"
 }
 
-template_path = "template/NS_SLI01_DLI01_BLI02_FIXED.docx"
+template_path = "templates/NS_SLI01_DLI01_BLI02_FIXED.docx"
 
 def replace_docx_xml(template_path, replacements, output_path):
     temp_zip = template_path.replace(".docx", ".zip")
