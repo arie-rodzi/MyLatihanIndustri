@@ -84,16 +84,17 @@ with st.form("penilaian_form"):
     submitted = st.form_submit_button("💾 Simpan Penilaian")
 
     if submitted:
-        jumlah = sum(markah_list)
-        markah_30 = round((jumlah / 60) * 30, 2)
+        jumlah = sum(markah_list)              # Jumlah Skor daripada 60
+        markah_30 = round((jumlah / 60) * 30, 2)  # Markah 30% berdasarkan skala
 
+        # Simpan ke jadual utama
         c.execute("""
             REPLACE INTO penilaian_penyelia_industri 
             (pelajar_id, penyelia_id, q1, q2, q3, q4, q5, q6, q7, q8, q9, jumlah, markah_30)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (pelajar_id, penyelia_id, *markah_list, jumlah, markah_30))
 
-        # Simpan kelebihan/komen/keputusan dalam table lain (jika ada)
+        # Simpan ke jadual lanjutan
         c.execute("""
             CREATE TABLE IF NOT EXISTS penilaian_lanjutan (
                 pelajar_id TEXT PRIMARY KEY,
@@ -108,6 +109,9 @@ with st.form("penilaian_form"):
         """, (pelajar_id, komen_kelebihan, komen_lain, keputusan))
 
         conn.commit()
-        st.success(f"✅ Penilaian berjaya disimpan. Jumlah Skor: {jumlah}/60, Markah (30%): {markah_30}, Keputusan: {keputusan}")
+        st.success(f"✅ Penilaian berjaya disimpan.")
+        st.info(f"🧮 Jumlah Markah: **{jumlah} / 60**")
+        st.info(f"📊 Markah (30%): **{markah_30}**")
+        st.info(f"📌 Keputusan: **{keputusan}**")
 
 conn.close()
