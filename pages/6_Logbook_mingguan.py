@@ -29,7 +29,7 @@ c.execute("""
 """)
 conn.commit()
 
-# Tambah kolum jika belum ada (jika guna DB lama)
+# Tambah kolum jika belum ada (untuk kes backward compatibility)
 try:
     c.execute("ALTER TABLE logbook ADD COLUMN sah_industri TEXT DEFAULT 'Belum'")
 except sqlite3.OperationalError:
@@ -49,10 +49,21 @@ with st.form("logbook_form"):
     submitted = st.form_submit_button("Simpan Logbook")
     if submitted:
         tarikh_submit = datetime.today().strftime("%Y-%m-%d")
-        c.execute("""
-            REPLACE INTO logbook (pelajar_id, minggu, aktiviti, tarikh_submit)
-            VALUES (?, ?, ?, ?)
-        """, (pelajar_id, minggu, aktiviti, tarikh_submit))
+        
+        # FIX ERROR: Gantikan REPLACE dengan semakan manual (tanpa ubah struktur)
+        c.execute("SELECT 1 FROM logbook WHERE pelajar_id=? AND minggu=?", (pelajar_id, minggu))
+        if c.fetchone():
+            c.execute("""
+                UPDATE logbook
+                SET aktiviti = ?, tarikh_submit = ?
+                WHERE pelajar_id = ? AND minggu = ?
+            """, (aktiviti, tarikh_submit, pelajar_id, minggu))
+        else:
+            c.execute("""
+                INSERT INTO logbook (pelajar_id, minggu, aktiviti, tarikh_submit)
+                VALUES (?, ?, ?, ?)
+            """, (pelajar_id, minggu, aktiviti, tarikh_submit))
+        
         conn.commit()
         st.success(f"Logbook minggu ke-{minggu} telah disimpan.")
 
@@ -74,7 +85,6 @@ df = pd.read_sql_query(
 if not df.empty:
     df["minggu"] = df["minggu"].astype(int)
     
-    # Tukar nama kolum untuk paparan
     df = df.rename(columns={
         "minggu": "Minggu",
         "aktiviti": "Aktiviti",
