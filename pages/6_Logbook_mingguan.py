@@ -70,14 +70,16 @@ with st.form("logbook_form"):
 st.markdown("---")
 st.subheader("📖 Paparan Semua Logbook")
 
-query = """
+# Gantikan read_sql dengan kaedah fetchall() yang stabil
+c.execute("""
     SELECT minggu, aktiviti, tarikh_submit, sah_industri, sah_akademik
     FROM logbook
-    WHERE pelajar_id=?
+    WHERE pelajar_id = ?
     ORDER BY minggu
-"""
+""", (pelajar_id,))
+rows = c.fetchall()
 
-df = pd.read_sql(query, conn, params=(pelajar_id,))
+df = pd.DataFrame(rows, columns=["minggu", "aktiviti", "tarikh_submit", "sah_industri", "sah_akademik"])
 
 if not df.empty:
     df["minggu"] = df["minggu"].astype(int)
