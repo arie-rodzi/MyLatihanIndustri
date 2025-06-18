@@ -73,6 +73,16 @@ df = pd.read_sql_query(
 
 if not df.empty:
     df["minggu"] = df["minggu"].astype(int)
+    
+    # Tukar nama kolum untuk paparan
+    df = df.rename(columns={
+        "minggu": "Minggu",
+        "aktiviti": "Aktiviti",
+        "tarikh_submit": "Tarikh Penghantaran",
+        "sah_industri": "Pengesahan Penyelia Industri",
+        "sah_akademik": "Pengesahan Penyelia Akademik"
+    })
+
     st.dataframe(df, use_container_width=True)
 else:
     st.info("Tiada logbook dimasukkan setakat ini.")
