@@ -12,6 +12,7 @@ if "user_role" not in st.session_state or st.session_state["user_role"] != "peny
 conn = sqlite3.connect("database/latihan_industri.final.db")
 c = conn.cursor()
 
+# Pastikan jadual status_permohonan wujud
 c.execute("""
     CREATE TABLE IF NOT EXISTS status_permohonan (
         pelajar_id TEXT PRIMARY KEY,
@@ -23,13 +24,13 @@ c.execute("""
 """)
 conn.commit()
 
-# Ambil semua pelajar
+# Ambil senarai pelajar
 c.execute("SELECT pelajar_id, nama FROM maklumat_pelajar")
 pelajar_list = c.fetchall()
 
 for pelajar_id, nama in pelajar_list:
     with st.expander(f"{nama} ({pelajar_id})"):
-        # Ambil maklumat peribadi
+        # Papar maklumat pelajar
         c.execute("SELECT ic, program, no_telefon, email, alamat FROM maklumat_pelajar WHERE pelajar_id=?", (pelajar_id,))
         ic, program, no_telefon, email, alamat = c.fetchone()
         st.markdown(f"""
@@ -41,12 +42,13 @@ for pelajar_id, nama in pelajar_list:
         - **Alamat:** {alamat}
         """)
 
-        # Ambil status terkini dari DB dalam loop
+        # Papar status terkini
         c.execute("SELECT status_lulus FROM status_permohonan WHERE pelajar_id=?", (pelajar_id,))
         row = c.fetchone()
         status_lulus = row[0] if row else None
         st.write("**Status Permohonan:**", status_lulus if status_lulus else "❌ Belum Lulus")
 
+        # Butang lulus
         if st.button(f"✅ Luluskan SLI-01 untuk {nama}", key=f"btn_{pelajar_id}"):
             c.execute("""
                 INSERT INTO status_permohonan (pelajar_id, status_lulus, tarikh_lulus)
@@ -57,6 +59,6 @@ for pelajar_id, nama in pelajar_list:
             """, (pelajar_id, "LULUS", date.today().isoformat()))
             conn.commit()
             st.success("Permohonan SLI-01 telah diluluskan.")
-            st.experimental_rerun()  # ✅ ini penting supaya terus reload dengan data baru
+            st.rerun()  # ✅ versi terkini dan betul
 
 conn.close()
