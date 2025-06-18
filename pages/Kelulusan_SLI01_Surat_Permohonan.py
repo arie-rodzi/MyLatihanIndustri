@@ -55,9 +55,11 @@ for pelajar_id, nama in pelajar_list:
         # Butang kelulusan
         if st.button(f"✅ Luluskan SLI-01 untuk {nama}", key=pelajar_id):
             c.execute("""
-                INSERT OR REPLACE INTO status_permohonan 
-                (pelajar_id, status_lulus, tarikh_lulus) 
+                INSERT INTO status_permohonan (pelajar_id, status_lulus, tarikh_lulus)
                 VALUES (?, ?, ?)
+                ON CONFLICT(pelajar_id) DO UPDATE SET
+                    status_lulus=excluded.status_lulus,
+                    tarikh_lulus=excluded.tarikh_lulus
             """, (pelajar_id, "LULUS", date.today().isoformat()))
             conn.commit()
             st.success("Permohonan SLI-01 telah diluluskan.")
