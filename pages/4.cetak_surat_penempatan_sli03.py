@@ -2,11 +2,10 @@ import streamlit as st
 import os
 import sqlite3
 from docx import Document
-from docx2pdf import convert
 
 # Konfigurasi
 st.set_page_config(page_title="Cetak Surat Penempatan", layout="wide")
-st.title("📄 Cetak Surat Penempatan (PDF)")
+st.title("📄 Cetak Surat Penempatan")
 
 if st.session_state.get("user_role") != "pelajar":
     st.warning("Modul ini hanya untuk pelajar.")
@@ -30,7 +29,7 @@ pelajar = c.fetchone()
 c.execute("SELECT * FROM maklumat_industri WHERE pelajar_id=?", (pelajar_id,))
 industri = c.fetchone()
 
-# Ambil data penyelaras berdasarkan kod program
+# Ambil data penyelaras
 c.execute("SELECT * FROM penyelaras WHERE kod_program=?", (pelajar[3],))
 penyelaras = c.fetchone()
 
@@ -72,26 +71,25 @@ def replace_tags(doc, replacements):
                     if key in cell.text:
                         cell.text = cell.text.replace(key, str(val))
 
-if st.button("📄 Jana Surat PDF & Papar"):
+if st.button("📄 Papar Surat & Sedia Untuk Cetak"):
     try:
-        # Buka template dan ganti tag
+        # Ganti tag dalam template dan simpan sebagai .docx
         doc = Document(docx_template)
         replace_tags(doc, gantian)
         doc.save(output_docx)
 
-        # Convert ke PDF
-        convert(output_docx, output_pdf)
+        # Paparkan isi kandungan surat sebagai teks
+        st.write("### Pratonton Kandungan Surat (Teks Sahaja)")
+        preview_doc = Document(output_docx)
+        for para in preview_doc.paragraphs:
+            st.write(para.text)
 
-        # Papar PDF dalam iframe (paparan inline)
-        with open(output_pdf, "rb") as f:
-            base64_pdf = f.read()
-            pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf.decode("latin1")}" width="100%" height="1000px" type="application/pdf"></iframe>'
-            st.markdown(pdf_display, unsafe_allow_html=True)
+        # Beri muat turun fail PDF (jika telah disediakan oleh admin secara manual)
+        if os.path.exists(output_pdf):
+            with open(output_pdf, "rb") as f:
+                st.download_button("📥 Muat Turun Surat (PDF)", f, file_name=f"Surat_Penempatan_{pelajar_id}.pdf")
+        else:
+            st.info("📎 PDF belum dijana. Sila cetak fail .docx secara manual dan simpan sebagai PDF.")
 
-        # Butang Muat Turun PDF
-        with open(output_pdf, "rb") as f:
-            st.download_button("📥 Muat Turun Surat (PDF)", f, file_name=f"Surat_Penempatan_{pelajar_id}.pdf")
-            
-        st.success("✅ Surat berjaya dijana dan dipaparkan.")
     except Exception as e:
-        st.error(f"❌ Ralat semasa jana surat: {e}")
+        st.error(f"❌ Ralat semasa paparan surat: {e}")
