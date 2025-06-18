@@ -17,7 +17,8 @@ conn = sqlite3.connect("database/latihan_industri.db")
 c = conn.cursor()
 
 # Dapatkan maklumat pelajar
-c.execute("SELECT nama, no_ic, kod_program, email FROM maklumat_pelajar WHERE pelajar_id=?", (pelajar_id,))
+c.execute("SELECT nama, no_ic, kod_program, emel FROM maklumat_pelajar WHERE pelajar_id=?", (pelajar_id,))
+
 data_pelajar = c.fetchone()
 
 # Dapatkan maklumat penyelaras
