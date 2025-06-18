@@ -18,7 +18,7 @@ c = conn.cursor()
 
 upload_dir = "uploaded/bli02"
 
-# Pastikan jadual wujud
+# Pastikan jadual status_permohonan wujud
 c.execute("""
     CREATE TABLE IF NOT EXISTS status_permohonan (
         pelajar_id TEXT PRIMARY KEY,
@@ -35,6 +35,11 @@ try:
     c.execute("ALTER TABLE status_permohonan ADD COLUMN tarikh_sli03 TEXT")
 except sqlite3.OperationalError:
     pass  # Kolum mungkin sudah wujud
+
+# Debug: Semak struktur jadual maklumat_industri
+c.execute("PRAGMA table_info(maklumat_industri)")
+cols = c.fetchall()
+st.write("📋 Struktur Jadual `maklumat_industri`:", cols)
 
 # Ambil senarai pelajar
 c.execute("SELECT pelajar_id, nama FROM maklumat_pelajar")
@@ -67,9 +72,14 @@ for pelajar_id, nama in pelajar_list:
         st.write(f"**Tarikh Tamat:** {industry[7]}")
 
         # Lampirkan fail BLI-02 jika wujud
-        file_path = os.path.join(upload_dir, industry[8])
-        if os.path.exists(file_path):
-            st.markdown(f"[📄 Muat Turun BLI-02]({file_path})")
+        if len(industry) > 8 and industry[8]:
+            file_path = os.path.join(upload_dir, industry[8])
+            if os.path.exists(file_path):
+                st.markdown(f"[📄 Muat Turun BLI-02]({file_path})")
+            else:
+                st.warning("❌ Fail BLI-02 tidak dijumpai di pelayan.")
+        else:
+            st.warning("❌ Fail BLI-02 belum dimuat naik.")
 
         # Status SLI-03 semasa
         status_sli03 = permohonan[1]
