@@ -1,12 +1,11 @@
-
 import streamlit as st
 import sqlite3
 
 st.set_page_config(page_title="Dashboard Pensyarah", layout="wide")
 st.title("👨‍🏫 Dashboard Penyelia Akademik")
 
-# Sambung ke fail DB sebenar
-conn = sqlite3.connect("/mnt/data/latihan_industri (6).db")
+# Sambung ke fail DB yang betul
+conn = sqlite3.connect("database/latihan_industri.db")
 c = conn.cursor()
 
 # Borang login
