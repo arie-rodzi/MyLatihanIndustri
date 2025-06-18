@@ -1,20 +1,21 @@
 import streamlit as st
 import sqlite3
 from datetime import datetime
+import pytz  # ⬅️ Penting untuk waktu Malaysia
 
 st.set_page_config(page_title="Kelulusan SLI-01", layout="wide")
 st.title("📄 Kelulusan Surat Permohonan Latihan Industri (SLI-01)")
 
-# Pastikan login sebagai penyelaras
+# Semakan login
 if "user_role" not in st.session_state or st.session_state["user_role"] != "penyelaras":
     st.warning("Modul ini hanya untuk penyelaras.")
     st.stop()
 
-# Sambung ke database
+# Sambung ke pangkalan data
 conn = sqlite3.connect("database/latihan_industri.final.db")
 c = conn.cursor()
 
-# Cipta jadual jika belum wujud
+# Pastikan jadual status_permohonan wujud
 c.execute("""
     CREATE TABLE IF NOT EXISTS status_permohonan (
         pelajar_id TEXT PRIMARY KEY,
@@ -26,7 +27,7 @@ c.execute("""
 """)
 conn.commit()
 
-# Ambil semua pelajar
+# Ambil senarai pelajar
 c.execute("SELECT pelajar_id, nama FROM maklumat_pelajar")
 pelajar_list = c.fetchall()
 
@@ -45,7 +46,7 @@ for pelajar_id, nama in pelajar_list:
         - **Alamat:** {alamat}
         """)
 
-        # Semak status permohonan terkini
+        # Semak status lulus & tarikh
         c.execute("SELECT status_lulus, tarikh_lulus FROM status_permohonan WHERE pelajar_id=?", (pelajar_id,))
         row = c.fetchone()
         if row:
@@ -57,12 +58,13 @@ for pelajar_id, nama in pelajar_list:
         else:
             st.info("❌ BELUM LULUS")
 
-        # Butang lulus
+        # Butang kelulusan
         if st.button(f"✅ Luluskan SLI-01 untuk {nama}", key=f"lulus_{pelajar_id}"):
-            import pytz
-tz = pytz.timezone('Asia/Kuala_Lumpur')
-current_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+            # Dapatkan waktu Malaysia
+            tz = pytz.timezone("Asia/Kuala_Lumpur")
+            current_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
 
+            # Semak kewujudan rekod
             c.execute("SELECT 1 FROM status_permohonan WHERE pelajar_id=?", (pelajar_id,))
             if c.fetchone():
                 c.execute("""
