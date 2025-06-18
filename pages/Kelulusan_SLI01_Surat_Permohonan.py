@@ -59,7 +59,10 @@ for pelajar_id, nama in pelajar_list:
 
         # Butang lulus
         if st.button(f"✅ Luluskan SLI-01 untuk {nama}", key=f"lulus_{pelajar_id}"):
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Format 24-jam
+            import pytz
+tz = pytz.timezone('Asia/Kuala_Lumpur')
+current_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+
             c.execute("SELECT 1 FROM status_permohonan WHERE pelajar_id=?", (pelajar_id,))
             if c.fetchone():
                 c.execute("""
