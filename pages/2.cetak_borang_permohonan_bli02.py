@@ -20,7 +20,7 @@ conn = sqlite3.connect("database/latihan_industri.db")
 c = conn.cursor()
 
 # Ambil maklumat pelajar
-c.execute("SELECT nama, no_ic, kod_program, email FROM maklumat_pelajar WHERE pelajar_id=?", (pelajar_id,))
+c.execute("SELECT nama, no_ic, kod_program FROM maklumat_pelajar WHERE pelajar_id=?", (pelajar_id,))
 pelajar = c.fetchone()
 
 # Ambil maklumat kelulusan
@@ -36,7 +36,8 @@ if not status or status[0] != "lulus":
     st.stop()
 
 # Dapatkan data
-nama, ic, program, email = pelajar
+nama, ic, program = pelajar
+email = ""  # fallback untuk placeholder surat
 _, nama_penyelaras, email_penyelaras, kod_program, _ = status
 today = date.today().strftime("%Y-%m-%d")
 
