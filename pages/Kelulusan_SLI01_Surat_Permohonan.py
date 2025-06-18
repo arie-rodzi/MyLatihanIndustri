@@ -6,7 +6,7 @@ st.set_page_config(page_title="Kelulusan SLI-01", layout="wide")
 st.title("📄 Kelulusan Surat Permohonan Latihan Industri (SLI-01)")
 
 # Lindungi ralat jika 'user_role' belum wujud
-if "user_role" not in st.session_state or st.session_state.get("user_role") != "penyalaras":
+if "user_role" not in st.session_state or st.session_state.get("user_role") != "penyelaras":
     st.warning("Modul ini hanya untuk penyelaras.")
     st.stop()
 
