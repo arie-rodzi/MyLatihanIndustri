@@ -1,6 +1,6 @@
 import streamlit as st
 import sqlite3
-from datetime import date
+from datetime import datetime
 
 st.set_page_config(page_title="Kelulusan SLI-01", layout="wide")
 st.title("📄 Kelulusan Surat Permohonan Latihan Industri (SLI-01)")
@@ -30,7 +30,7 @@ pelajar_list = c.fetchall()
 
 for pelajar_id, nama in pelajar_list:
     with st.expander(f"{nama} ({pelajar_id})", expanded=False):
-        # Ambil semula maklumat pelajar
+        # Maklumat pelajar
         c.execute("SELECT ic, program, no_telefon, email, alamat FROM maklumat_pelajar WHERE pelajar_id=?", (pelajar_id,))
         ic, program, no_telefon, email, alamat = c.fetchone()
 
@@ -43,29 +43,35 @@ for pelajar_id, nama in pelajar_list:
         - **Alamat:** {alamat}
         """)
 
-        # Ambil status terkini untuk pelajar ini sahaja
-        c.execute("SELECT status_lulus FROM status_permohonan WHERE pelajar_id=?", (pelajar_id,))
+        # Status kelulusan
+        c.execute("SELECT status_lulus, tarikh_lulus FROM status_permohonan WHERE pelajar_id=?", (pelajar_id,))
         row = c.fetchone()
-        status_lulus = row[0] if row else None
+        if row:
+            status_lulus, tarikh_lulus = row
+            if status_lulus == "LULUS":
+                st.success(f"✅ LULUS pada {tarikh_lulus}")
+            else:
+                st.info("❌ BELUM LULUS")
+        else:
+            st.info("❌ BELUM LULUS")
 
-        st.info(f"**Status Semasa:** {'✅ LULUS' if status_lulus == 'LULUS' else '❌ BELUM LULUS'}")
-
+        # Butang luluskan
         if st.button(f"✅ Luluskan SLI-01 untuk {nama}", key=f"lulus_{pelajar_id}"):
-            # Semak jika sudah wujud
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             c.execute("SELECT 1 FROM status_permohonan WHERE pelajar_id=?", (pelajar_id,))
             if c.fetchone():
                 c.execute("""
                     UPDATE status_permohonan
                     SET status_lulus = ?, tarikh_lulus = ?
                     WHERE pelajar_id = ?
-                """, ("LULUS", date.today().isoformat(), pelajar_id))
+                """, ("LULUS", current_time, pelajar_id))
             else:
                 c.execute("""
                     INSERT INTO status_permohonan (pelajar_id, status_lulus, tarikh_lulus)
                     VALUES (?, ?, ?)
-                """, (pelajar_id, "LULUS", date.today().isoformat()))
+                """, (pelajar_id, "LULUS", current_time))
             conn.commit()
-            st.success("✅ Telah diluluskan.")
+            st.success(f"✅ Diluluskan pada {current_time}")
             st.rerun()
 
 conn.close()
