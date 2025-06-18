@@ -3,9 +3,7 @@ import sqlite3
 import os
 import zipfile
 import shutil
-from docx import Document
 from datetime import date
-from io import BytesIO
 
 # Konfigurasi halaman
 st.set_page_config(page_title="Cetak Borang Permohonan BLI-02", layout="wide")
@@ -20,39 +18,6 @@ if st.session_state.get("user_role") != "pelajar":
 TEMPLATE_PATH = "templates/NS_SLI01_DLI01_BLI02_FIXED.docx"
 OUTPUT_DIR = "output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-# Sambung ke pangkalan data
-conn = sqlite3.connect("database/latihan_industri.db")
-c = conn.cursor()
-
-# Log nama jadual
-c.execute("SELECT name FROM sqlite_master WHERE type='table'")
-st.write("📋 Jadual dalam DB:", c.fetchall())
-
-# Dapatkan ID pelajar dari sesi
-pelajar_id = st.session_state.get("user_id")
-st.write("🆔 ID Pelajar:", pelajar_id)
-
-# Ambil maklumat pelajar dan penyelaras
-try:
-    c.execute("""
-        SELECT mp.nama, mp.no_ic, mp.kod_program, mp.email,
-               sp.nama_penyelaras, sp.email_penyelaras, sp.tarikh_lulus
-        FROM maklumat_pelajar mp
-        LEFT JOIN status_permohonan sp ON mp.pelajar_id = sp.pelajar_id
-        WHERE mp.pelajar_id = ?
-    """, (pelajar_id,))
-    data = c.fetchone()
-except Exception as e:
-    st.error(f"❌ SQL Error: {e}")
-    st.stop()
-
-if not data:
-    st.error("⚠️ Maklumat pelajar tidak dijumpai.")
-    st.stop()
-
-# Tetapkan data
-nama_pelajar, no_ic, kod_program, email_pelajar, nama_penyelaras, email_penyelaras, tarikh_lulus = data
 
 # Fungsi gantian teks dalam .docx XML
 def replace_docx_xml(template_path, replacements, output_path):
@@ -71,6 +36,35 @@ def replace_docx_xml(template_path, replacements, output_path):
                 zout.writestr(item, data)
 
     os.remove(temp_zip)
+
+# Sambung ke pangkalan data
+conn = sqlite3.connect("database/latihan_industri.db")
+c = conn.cursor()
+
+# Dapatkan ID pelajar dari sesi
+pelajar_id = st.session_state.get("user_id")
+st.write("🆔 ID Pelajar:", pelajar_id)
+
+# Ambil maklumat pelajar dan penyelaras (BUANG `mp.email`)
+try:
+    c.execute("""
+        SELECT mp.nama, mp.no_ic, mp.kod_program,
+               sp.nama_penyelaras, sp.email_penyelaras, sp.tarikh_lulus
+        FROM maklumat_pelajar mp
+        LEFT JOIN status_permohonan sp ON mp.pelajar_id = sp.pelajar_id
+        WHERE mp.pelajar_id = ?
+    """, (pelajar_id,))
+    data = c.fetchone()
+except Exception as e:
+    st.error(f"❌ SQL Error: {e}")
+    st.stop()
+
+if not data:
+    st.error("⚠️ Maklumat pelajar tidak dijumpai.")
+    st.stop()
+
+# Tetapkan data
+nama_pelajar, no_ic, kod_program, nama_penyelaras, email_penyelaras, tarikh_lulus = data
 
 # Tetapkan pengganti
 replacements = {
