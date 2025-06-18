@@ -29,7 +29,7 @@ c.execute("""
 """)
 conn.commit()
 
-# Tambah kolum jika belum ada (untuk kes backward compatibility)
+# Tambah kolum jika belum ada
 try:
     c.execute("ALTER TABLE logbook ADD COLUMN sah_industri TEXT DEFAULT 'Belum'")
 except sqlite3.OperationalError:
@@ -49,8 +49,8 @@ with st.form("logbook_form"):
     submitted = st.form_submit_button("Simpan Logbook")
     if submitted:
         tarikh_submit = datetime.today().strftime("%Y-%m-%d")
-        
-        # FIX ERROR: Gantikan REPLACE dengan semakan manual (tanpa ubah struktur)
+
+        # Semak jika entri minggu itu sudah ada
         c.execute("SELECT 1 FROM logbook WHERE pelajar_id=? AND minggu=?", (pelajar_id, minggu))
         if c.fetchone():
             c.execute("""
@@ -63,7 +63,6 @@ with st.form("logbook_form"):
                 INSERT INTO logbook (pelajar_id, minggu, aktiviti, tarikh_submit)
                 VALUES (?, ?, ?, ?)
             """, (pelajar_id, minggu, aktiviti, tarikh_submit))
-        
         conn.commit()
         st.success(f"Logbook minggu ke-{minggu} telah disimpan.")
 
@@ -71,20 +70,18 @@ with st.form("logbook_form"):
 st.markdown("---")
 st.subheader("📖 Paparan Semua Logbook")
 
-df = pd.read_sql_query(
-    """
+query = """
     SELECT minggu, aktiviti, tarikh_submit, sah_industri, sah_akademik
     FROM logbook
     WHERE pelajar_id=?
     ORDER BY minggu
-    """,
-    conn,
-    params=(pelajar_id,)
-)
+"""
+
+df = pd.read_sql(query, conn, params=(pelajar_id,))
 
 if not df.empty:
     df["minggu"] = df["minggu"].astype(int)
-    
+
     df = df.rename(columns={
         "minggu": "Minggu",
         "aktiviti": "Aktiviti",
