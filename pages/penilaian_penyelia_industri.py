@@ -79,8 +79,6 @@ with st.form("penilaian_form"):
     st.subheader("💭 Komen Lain")
     komen_lain = st.text_area("Komen tambahan jika ada", key="komen")
 
-    keputusan = st.radio("🔎 Keputusan", options=["LULUS", "GAGAL", "TIDAK LENGKAP"], horizontal=True)
-
     submitted = st.form_submit_button("💾 Simpan Penilaian")
 
     if submitted:
@@ -94,24 +92,22 @@ with st.form("penilaian_form"):
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (pelajar_id, penyelia_id, *markah_list, jumlah, markah_30))
 
-        # Simpan ke jadual lanjutan
+        # Simpan komen
         c.execute("""
             CREATE TABLE IF NOT EXISTS penilaian_lanjutan (
                 pelajar_id TEXT PRIMARY KEY,
                 kelebihan TEXT,
-                komen TEXT,
-                keputusan TEXT
+                komen TEXT
             )
         """)
         c.execute("""
-            REPLACE INTO penilaian_lanjutan (pelajar_id, kelebihan, komen, keputusan)
-            VALUES (?, ?, ?, ?)
-        """, (pelajar_id, komen_kelebihan, komen_lain, keputusan))
+            REPLACE INTO penilaian_lanjutan (pelajar_id, kelebihan, komen)
+            VALUES (?, ?, ?)
+        """, (pelajar_id, komen_kelebihan, komen_lain))
 
         conn.commit()
-        st.success(f"✅ Penilaian berjaya disimpan.")
+        st.success("✅ Penilaian berjaya disimpan.")
         st.info(f"🧮 Jumlah Markah: **{jumlah} / 60**")
-        st.info(f"📊 Markah (30%): **{markah_30}**")
-        st.info(f"📌 Keputusan: **{keputusan}**")
+        st.info(f"📊 Markah Dinilai (30%): **{markah_30}**")
 
 conn.close()
