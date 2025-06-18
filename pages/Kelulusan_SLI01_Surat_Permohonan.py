@@ -5,14 +5,16 @@ from datetime import datetime
 st.set_page_config(page_title="Kelulusan SLI-01", layout="wide")
 st.title("📄 Kelulusan Surat Permohonan Latihan Industri (SLI-01)")
 
+# Pastikan login sebagai penyelaras
 if "user_role" not in st.session_state or st.session_state["user_role"] != "penyelaras":
     st.warning("Modul ini hanya untuk penyelaras.")
     st.stop()
 
+# Sambung ke database
 conn = sqlite3.connect("database/latihan_industri.final.db")
 c = conn.cursor()
 
-# Pastikan jadual wujud
+# Cipta jadual jika belum wujud
 c.execute("""
     CREATE TABLE IF NOT EXISTS status_permohonan (
         pelajar_id TEXT PRIMARY KEY,
@@ -24,13 +26,13 @@ c.execute("""
 """)
 conn.commit()
 
-# Ambil senarai pelajar
+# Ambil semua pelajar
 c.execute("SELECT pelajar_id, nama FROM maklumat_pelajar")
 pelajar_list = c.fetchall()
 
 for pelajar_id, nama in pelajar_list:
     with st.expander(f"{nama} ({pelajar_id})", expanded=False):
-        # Maklumat pelajar
+        # Ambil maklumat pelajar
         c.execute("SELECT ic, program, no_telefon, email, alamat FROM maklumat_pelajar WHERE pelajar_id=?", (pelajar_id,))
         ic, program, no_telefon, email, alamat = c.fetchone()
 
@@ -43,7 +45,7 @@ for pelajar_id, nama in pelajar_list:
         - **Alamat:** {alamat}
         """)
 
-        # Status kelulusan
+        # Semak status permohonan terkini
         c.execute("SELECT status_lulus, tarikh_lulus FROM status_permohonan WHERE pelajar_id=?", (pelajar_id,))
         row = c.fetchone()
         if row:
@@ -55,9 +57,9 @@ for pelajar_id, nama in pelajar_list:
         else:
             st.info("❌ BELUM LULUS")
 
-        # Butang luluskan
+        # Butang lulus
         if st.button(f"✅ Luluskan SLI-01 untuk {nama}", key=f"lulus_{pelajar_id}"):
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Format 24-jam
             c.execute("SELECT 1 FROM status_permohonan WHERE pelajar_id=?", (pelajar_id,))
             if c.fetchone():
                 c.execute("""
@@ -71,7 +73,7 @@ for pelajar_id, nama in pelajar_list:
                     VALUES (?, ?, ?)
                 """, (pelajar_id, "LULUS", current_time))
             conn.commit()
-            st.success(f"✅ Diluluskan pada {current_time}")
+            st.success(f"✅ Permohonan telah diluluskan pada {current_time}")
             st.rerun()
 
 conn.close()
