@@ -64,4 +64,5 @@ else:
                           (pelajar_id, nama, ic, program, no_telefon, email, alamat))
                 conn.commit()
                 st.success("Maklumat berjaya dihantar.")
-                st.experimental_rerun()
+                st.rerun()
+
