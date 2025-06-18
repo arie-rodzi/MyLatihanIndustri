@@ -31,13 +31,13 @@ if not pelajar:
     st.warning("Maklumat pelajar belum lengkap. Sila isi Modul 1 terlebih dahulu.")
     st.stop()
 
-if not status or status[0] != "lulus":
+if not status or status[0].lower() != "lulus":
     st.info("Permohonan anda belum diluluskan oleh penyelaras program.")
     st.stop()
 
 # Dapatkan data
 nama, ic, program = pelajar
-email = ""  # fallback untuk placeholder surat
+email = ""  # fallback emel pelajar jika tiada
 _, nama_penyelaras, email_penyelaras, kod_program, _ = status
 today = date.today().strftime("%Y-%m-%d")
 
@@ -65,16 +65,16 @@ for p in doc.paragraphs:
     p.text = p.text.replace("«ALAMAT_EMEL»", email)
     p.text = p.text.replace("«EMEL_PELAJAR»", email)
 
-# Simpan .docx
+# Simpan fail DOCX
 doc.save(docx_path)
 
-# Papar kandungan
+# Papar isi surat sebagai teks
 st.subheader("📝 Pratonton Kandungan Surat Permohonan")
 doc_preview = Document(docx_path)
 for para in doc_preview.paragraphs:
     st.write(para.text)
 
-# Muat naik PDF yang dijana oleh pelajar
+# Muat naik fail PDF
 st.markdown("### 📤 Muat Naik Surat Permohonan (PDF)")
 uploaded_pdf = st.file_uploader("Sila muat naik fail PDF surat permohonan:", type=["pdf"])
 
@@ -83,12 +83,12 @@ if uploaded_pdf:
         f.write(uploaded_pdf.read())
     st.success("✅ PDF berjaya dimuat naik.")
 
-    # Muat turun semula PDF
+    # Papar fail PDF inline
     with open(pdf_path, "rb") as f:
-        st.download_button("📥 Muat Turun Surat (PDF)", f, file_name=f"Surat_Permohonan_{pelajar_id}.pdf")
+        base64_pdf = base64.b64encode(f.read()).decode("utf-8")
+        pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="1000px"></iframe>'
+        st.markdown("### 📄 Pratonton PDF Dimuat Naik")
+        st.markdown(pdf_display, unsafe_allow_html=True)
 
-    # Papar inline PDF
-    base64_pdf = base64.b64encode(open(pdf_path, "rb").read()).decode('utf-8')
-    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="1000px"></iframe>'
-    st.markdown("### 📄 Pratonton PDF Dimuat Naik")
-    st.markdown(pdf_display, unsafe_allow_html=True)
+        # Butang muat turun
+        st.download_button("📥 Muat Turun Surat (PDF)", f, file_name=f"Surat_Permohonan_{pelajar_id}.pdf")
