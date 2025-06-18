@@ -1,83 +1,88 @@
 import streamlit as st
 import sqlite3
-from datetime import datetime
 import os
-import shutil
 import zipfile
-from pathlib import Path
+import shutil
+from docx import Document
+from datetime import date
+from io import BytesIO
 
-st.set_page_config(page_title="Cetak Surat Permohonan SLI-01", layout="wide")
-st.title("📄 Cetak Surat Permohonan SLI-01")
+# Konfigurasi halaman
+st.set_page_config(page_title="Cetak Borang Permohonan BLI-02", layout="wide")
+st.title("📄 Modul 2: Cetak Borang Permohonan BLI-02")
 
-# Semak akses
+# Semakan login
 if st.session_state.get("user_role") != "pelajar":
     st.warning("Modul ini hanya untuk pelajar.")
     st.stop()
 
-pelajar_id = st.session_state.get("user_id", "")
+# Tetapan laluan template dan output
+TEMPLATE_PATH = "templates/NS_SLI01_DLI01_BLI02_FIXED.docx"
+OUTPUT_DIR = "output"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# Fungsi gantian teks dalam .docx XML
+def replace_docx_xml(template_path, replacements, output_path):
+    temp_zip = "temp_docx.zip"
+    shutil.copyfile(template_path, temp_zip)
+
+    with zipfile.ZipFile(temp_zip, 'r') as zin:
+        with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                data = zin.read(item.filename)
+                if item.filename == "word/document.xml":
+                    text = data.decode("utf-8")
+                    for key, value in replacements.items():
+                        text = text.replace(key, value)
+                    data = text.encode("utf-8")
+                zout.writestr(item, data)
+
+    os.remove(temp_zip)
 
 # Sambung ke pangkalan data
 conn = sqlite3.connect("database/latihan_industri.db")
 c = conn.cursor()
 
-# Ambil maklumat pelajar & penyelaras
+# Dapatkan ID pelajar dari sesi
+pelajar_id = st.session_state.get("user_id")
+
+# Ambil maklumat pelajar dan penyelaras
 c.execute("""
-    SELECT p.pelajar_id, p.nama, p.no_ic, p.kod_program, p.emel,
-           s.nama_penyelaras, s.email_penyelaras, s.kod_program, s.tarikh_lulus
-    FROM maklumat_pelajar p
-    JOIN status_permohonan s ON p.pelajar_id = s.pelajar_id
-    WHERE p.pelajar_id = ?
+    SELECT mp.nama, mp.no_ic, mp.kod_program, mp.email, sp.nama_penyelaras, sp.email_penyelaras, sp.tarikh_lulus
+    FROM maklumat_pelajar mp
+    LEFT JOIN status_permohonan sp ON mp.pelajar_id = sp.pelajar_id
+    WHERE mp.pelajar_id = ?
 """, (pelajar_id,))
 data = c.fetchone()
 
 if not data:
-    st.error("Maklumat pelajar atau status permohonan tidak lengkap.")
+    st.error("Maklumat pelajar tidak dijumpai.")
     st.stop()
 
-# Data pengganti
+# Tetapkan data
+nama_pelajar, no_ic, kod_program, email_pelajar, nama_penyelaras, email_penyelaras, tarikh_lulus = data
+
+# Tetapkan pengganti
 replacements = {
-    "«NOMBOR_ID_PELAJAR»": data[0],
-    "«NAMA_PENUH_HURUF_BESAR»": data[1].upper(),
-    "«NOMBOR_KAD_PENGENALAN»": data[2],
-    "«NAMA_PROGRAM»": data[3],
-    "«EMEL_PELAJAR»": data[4],
-    "«NAMA_PENYELARAS»": data[5],
-    "«email_penyelaras»": data[6],
-    "«kod_pogram»": data[7],
-    "«TARIKH_SURAT»": data[8],
-    "«TARIKH_MULA_LI»": "1/10/2025",
-    "«TARIKH_TAMAT_LI»": "31/3/2026"
+    "«NAMA_PENUH_HURUF_BESAR»": nama_pelajar.upper(),
+    "«NOMBOR_KAD_PENGENALAN»": no_ic,
+    "«NOMBOR_ID_PELAJAR»": pelajar_id,
+    "«NAMA_PROGRAM»": kod_program,
+    "«NAMA_PENYELARAS»": nama_penyelaras,
+    "«KOD_PROGRAM»": kod_program
 }
 
-template_path = "templates/NS_SLI01_DLI01_BLI02_FIXED.docx"
+# Laluan simpanan fail akhir
+output_path = os.path.join(OUTPUT_DIR, f"Surat_Permohonan_SLI01_{pelajar_id}_FINAL.docx")
 
-def replace_docx_xml(template_path, replacements, output_path):
-    temp_zip = template_path.replace(".docx", ".zip")
-    shutil.copyfile(template_path, temp_zip)
-    extract_dir = Path("temp_extract")
-    with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
-        zip_ref.extractall(extract_dir)
-    doc_xml_path = extract_dir / "word" / "document.xml"
-    with open(doc_xml_path, "r", encoding="utf-8") as f:
-        content = f.read()
-    for key, val in replacements.items():
-        content = content.replace(key, val)
-    with open(doc_xml_path, "w", encoding="utf-8") as f:
-        f.write(content)
-    with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as docx_zip:
-        for foldername, _, filenames in os.walk(extract_dir):
-            for filename in filenames:
-                file_path = Path(foldername) / filename
-                arcname = file_path.relative_to(extract_dir)
-                docx_zip.write(file_path, arcname)
-    shutil.rmtree(extract_dir)
-    os.remove(temp_zip)
+# Proses penggantian
+replace_docx_xml(TEMPLATE_PATH, replacements, output_path)
 
-# Butang jana surat
-if st.button("🖨️ Jana Surat Permohonan"):
-    output_file = f"Surat_Permohonan_SLI01_{pelajar_id}_FINAL.docx"
-    output_path = f"/mnt/data/{output_file}"
-    replace_docx_xml(template_path, replacements, output_path)
-    st.success("Surat berjaya dijana.")
-    with open(output_path, "rb") as f:
-        st.download_button("📥 Muat Turun Surat", f, file_name=output_file)
+# Papar hasil
+with open(output_path, "rb") as file:
+    st.download_button(
+        label="📥 Muat Turun Surat Permohonan SLI01",
+        data=file,
+        file_name=os.path.basename(output_path),
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
