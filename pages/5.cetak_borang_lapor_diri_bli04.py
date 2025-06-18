@@ -1,4 +1,3 @@
-
 import streamlit as st
 import sqlite3
 import os
@@ -12,12 +11,12 @@ if st.session_state.get("user_role") != "pelajar":
     st.stop()
 
 pelajar_id = st.session_state.get("user_id", "")
-template_path = "template/borang_lapor_diri_bli04.docx"
+template_path = "template/NS BLI-04 Borang Lapor Diri Di Organisasi (1).docx"
 output_path = f"generated/borang_lapor_diri_{pelajar_id}.docx"
 
 os.makedirs("generated", exist_ok=True)
 
-conn = sqlite3.connect("database.db")
+conn = sqlite3.connect("database/latihan_industri.db")
 c = conn.cursor()
 
 # Pastikan maklumat tersedia
@@ -33,18 +32,21 @@ if not pelajar or not industri:
 
 if st.button("Jana Borang Lapor Diri"):
     doc = Document(template_path)
+    
+    alamat_syarikat = ", ".join([industri[2], industri[3], industri[4], industri[5], industri[6]])
+    
     ganti = {
         "<<nama>>": pelajar[1],
         "<<no_ic>>": pelajar[2],
         "<<no_pelajar>>": pelajar[0],
         "<<program>>": pelajar[3],
         "<<syarikat>>": industri[1],
-        "<<alamat_syarikat>>": industri[2],
-        "<<pegawai>>": industri[3],
-        "<<telefon_pegawai>>": industri[5],
-        "<<emel_pegawai>>": industri[4],
-        "<<tarikh_mula>>": industri[6],
-        "<<tarikh_tamat>>": industri[7],
+        "<<alamat_syarikat>>": alamat_syarikat,
+        "<<pegawai>>": industri[7],
+        "<<telefon_pegawai>>": industri[9],
+        "<<emel_pegawai>>": industri[8],
+        "<<tarikh_mula>>": industri[10],
+        "<<tarikh_tamat>>": industri[11],
     }
 
     for p in doc.paragraphs:
