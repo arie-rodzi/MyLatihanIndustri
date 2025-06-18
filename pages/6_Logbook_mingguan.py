@@ -16,53 +16,25 @@ pelajar_id = st.session_state.get("user_id", "")
 conn = sqlite3.connect("database/latihan_industri.db")
 c = conn.cursor()
 
-# Cipta jadual jika belum wujud
-c.execute("""
-    CREATE TABLE IF NOT EXISTS logbook (
-        pelajar_id TEXT,
-        minggu INTEGER,
-        aktiviti TEXT,
-        tarikh_submit TEXT,
-        sah_industri TEXT DEFAULT 'Belum',
-        sah_akademik TEXT DEFAULT 'Belum'
-    )
-""")
-conn.commit()
-
-# Tambah kolum jika belum ada
-try:
-    c.execute("ALTER TABLE logbook ADD COLUMN sah_industri TEXT DEFAULT 'Belum'")
-except sqlite3.OperationalError:
-    pass
-
-try:
-    c.execute("ALTER TABLE logbook ADD COLUMN sah_akademik TEXT DEFAULT 'Belum'")
-except sqlite3.OperationalError:
-    pass
-
-conn.commit()
-
 # Input borang logbook mingguan
 with st.form("logbook_form"):
     minggu = st.number_input("Minggu", min_value=1, max_value=20, step=1)
     aktiviti = st.text_area("Catat Aktiviti Mingguan Anda", height=150)
     submitted = st.form_submit_button("Simpan Logbook")
     if submitted:
-        tarikh_submit = datetime.today().strftime("%Y-%m-%d")
-
-        # Semak jika entri minggu itu sudah ada
+        # Semak jika minggu tersebut sudah wujud untuk pelajar
         c.execute("SELECT 1 FROM logbook WHERE pelajar_id=? AND minggu=?", (pelajar_id, minggu))
         if c.fetchone():
             c.execute("""
                 UPDATE logbook
-                SET aktiviti = ?, tarikh_submit = ?
+                SET aktiviti = ?
                 WHERE pelajar_id = ? AND minggu = ?
-            """, (aktiviti, tarikh_submit, pelajar_id, minggu))
+            """, (aktiviti, pelajar_id, minggu))
         else:
             c.execute("""
-                INSERT INTO logbook (pelajar_id, minggu, aktiviti, tarikh_submit)
-                VALUES (?, ?, ?, ?)
-            """, (pelajar_id, minggu, aktiviti, tarikh_submit))
+                INSERT INTO logbook (pelajar_id, minggu, aktiviti)
+                VALUES (?, ?, ?)
+            """, (pelajar_id, minggu, aktiviti))
         conn.commit()
         st.success(f"Logbook minggu ke-{minggu} telah disimpan.")
 
@@ -70,28 +42,26 @@ with st.form("logbook_form"):
 st.markdown("---")
 st.subheader("📖 Paparan Semua Logbook")
 
-# Gantikan read_sql dengan kaedah fetchall() yang stabil
 c.execute("""
-    SELECT minggu, aktiviti, tarikh_submit, sah_industri, sah_akademik
+    SELECT minggu, aktiviti, disahkan_oleh_industri, disahkan_oleh_akademik
     FROM logbook
     WHERE pelajar_id = ?
     ORDER BY minggu
 """, (pelajar_id,))
 rows = c.fetchall()
 
-df = pd.DataFrame(rows, columns=["minggu", "aktiviti", "tarikh_submit", "sah_industri", "sah_akademik"])
+df = pd.DataFrame(rows, columns=[
+    "minggu", "aktiviti", "disahkan_oleh_industri", "disahkan_oleh_akademik"
+])
 
 if not df.empty:
     df["minggu"] = df["minggu"].astype(int)
-
     df = df.rename(columns={
         "minggu": "Minggu",
         "aktiviti": "Aktiviti",
-        "tarikh_submit": "Tarikh Penghantaran",
-        "sah_industri": "Pengesahan Penyelia Industri",
-        "sah_akademik": "Pengesahan Penyelia Akademik"
+        "disahkan_oleh_industri": "Pengesahan Penyelia Industri",
+        "disahkan_oleh_akademik": "Pengesahan Penyelia Akademik"
     })
-
     st.dataframe(df, use_container_width=True)
 else:
     st.info("Tiada logbook dimasukkan setakat ini.")
