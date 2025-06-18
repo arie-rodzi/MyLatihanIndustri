@@ -74,7 +74,7 @@ doc_preview = Document(docx_path)
 for para in doc_preview.paragraphs:
     st.write(para.text)
 
-# Muat naik fail PDF
+# --- MUAT NAIK PDF MANUAL ---
 st.markdown("### 📤 Muat Naik Surat Permohonan (PDF)")
 uploaded_pdf = st.file_uploader("Sila muat naik fail PDF surat permohonan:", type=["pdf"])
 
@@ -83,12 +83,13 @@ if uploaded_pdf:
         f.write(uploaded_pdf.read())
     st.success("✅ PDF berjaya dimuat naik.")
 
-    # Papar fail PDF inline
+# --- PAPAR PDF JIKA SUDAH DIMUAT NAIK ---
+if os.path.exists(pdf_path):
     with open(pdf_path, "rb") as f:
         base64_pdf = base64.b64encode(f.read()).decode("utf-8")
         pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="1000px"></iframe>'
         st.markdown("### 📄 Pratonton PDF Dimuat Naik")
         st.markdown(pdf_display, unsafe_allow_html=True)
 
-        # Butang muat turun
+        # Butang muat turun semula
         st.download_button("📥 Muat Turun Surat (PDF)", f, file_name=f"Surat_Permohonan_{pelajar_id}.pdf")
