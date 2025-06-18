@@ -1,10 +1,8 @@
 import streamlit as st
 import sqlite3
 from docx import Document
-from docx2pdf import convert
 import os
 from datetime import date
-import base64
 
 # Semakan login
 if st.session_state.get("user_role") != "pelajar":
@@ -46,7 +44,6 @@ today = date.today().strftime("%Y-%m-%d")
 folder_path = os.path.join("generated", program, "permohonan")
 os.makedirs(folder_path, exist_ok=True)
 docx_path = os.path.join(folder_path, f"permohonan_{pelajar_id}.docx")
-pdf_path = os.path.join(folder_path, f"permohonan_{pelajar_id}.pdf")
 
 # Gantian template
 template_path = "templates/NS_SLI01_DLI01_BLI02_FIXED.docx"
@@ -74,24 +71,12 @@ for p in doc.paragraphs:
 # Simpan fail DOCX
 doc.save(docx_path)
 
-# Tukar ke PDF
-try:
-    convert(docx_path, pdf_path)
-except Exception as e:
-    st.error(f"Gagal tukar ke PDF: {e}")
-    st.stop()
-
 # Papar isi surat sebagai teks
 st.subheader("📝 Pratonton Kandungan Surat Permohonan")
 doc_preview = Document(docx_path)
 for para in doc_preview.paragraphs:
     st.write(para.text)
 
-# Papar & muat turun PDF jika wujud
-if os.path.exists(pdf_path):
-    st.subheader("📄 Pratonton Surat Permohonan (PDF)")
-    with open(pdf_path, "rb") as f:
-        base64_pdf = base64.b64encode(f.read()).decode("utf-8")
-        pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="1000px"></iframe>'
-        st.markdown(pdf_display, unsafe_allow_html=True)
-        st.download_button("📥 Muat Turun Surat Permohonan (PDF)", f, file_name=f"Surat_Permohonan_{pelajar_id}.pdf")
+# Muat turun fail DOCX
+with open(docx_path, "rb") as f:
+    st.download_button("📥 Muat Turun Surat Permohonan (DOCX)", f, file_name=f"Surat_Permohonan_{pelajar_id}.docx")
