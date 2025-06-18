@@ -23,8 +23,8 @@ pelajar_id = st.session_state.get("user_id", "")
 conn = sqlite3.connect("database/latihan_industri.db")
 c = conn.cursor()
 
-# Semak maklumat pelajar
-c.execute("SELECT nama, ic, program, email FROM maklumat_pelajar WHERE pelajar_id=?", (pelajar_id,))
+# Semak maklumat pelajar (pastikan kolum betul)
+c.execute("SELECT nama, no_ic, kod_program, email FROM maklumat_pelajar WHERE pelajar_id=?", (pelajar_id,))
 pelajar = c.fetchone()
 
 # Semak status kelulusan penyelaras
@@ -45,12 +45,12 @@ _, nama_penyelaras, email_penyelaras, kod_program, _ = status
 today = date.today().strftime("%Y-%m-%d")
 
 # Buka dan isi template
-doc = Document("templates/NS SLI01_DLI01_BLI02.docx")
+doc = Document("templates/NS SLI01_DLI01_BLI02.FIXED.docx")
 for p in doc.paragraphs:
     p.text = p.text.replace("«NOMBOR_ID_PELAJAR»", pelajar_id)
     p.text = p.text.replace("«NOMBOR_KAD_PENGENALAN»", ic)
     p.text = p.text.replace("«NAMA_PENUH_HURUF_BESAR»", nama.upper())
-    p.text = p.text.replace("« NAMA_PROGRAM »", program)
+    p.text = p.text.replace("«NAMA_PROGRAM»", program)
     p.text = p.text.replace("«TARIKH_SURAT»", today)
     p.text = p.text.replace("«TARIKH_MULA_LI»", "2025-09-02")
     p.text = p.text.replace("«TARIKH_TAMAT_LI»", "2025-12-20")
@@ -58,6 +58,7 @@ for p in doc.paragraphs:
     p.text = p.text.replace("«email_penyelaras»", email_penyelaras)
     p.text = p.text.replace("«kod_pogram»", kod_program)
     p.text = p.text.replace("«ALAMAT_EMEL»", email)
+    p.text = p.text.replace("«EMEL_PELAJAR»", email)
 
 # Simpan ke fail sementara .docx
 with NamedTemporaryFile(delete=False, suffix=".docx") as tmp_docx:
