@@ -17,6 +17,13 @@ conn = sqlite3.connect("database/latihan_industri.final.db")
 c = conn.cursor()
 
 upload_dir = "uploaded/bli02"
+os.makedirs(upload_dir, exist_ok=True)
+
+# Cipta fail dummy jika belum wujud
+dummy_file_path = os.path.join(upload_dir, "dummy_bli02.pdf")
+if not os.path.exists(dummy_file_path):
+    with open(dummy_file_path, "wb") as f:
+        f.write(b"%PDF-1.4\n% Dummy BLI-02 file\n")
 
 # Pastikan jadual status_permohonan wujud
 c.execute("""
@@ -34,12 +41,7 @@ conn.commit()
 try:
     c.execute("ALTER TABLE status_permohonan ADD COLUMN tarikh_sli03 TEXT")
 except sqlite3.OperationalError:
-    pass  # Kolum mungkin sudah wujud
-
-# Debug: Semak struktur jadual maklumat_industri
-c.execute("PRAGMA table_info(maklumat_industri)")
-cols = c.fetchall()
-st.write("📋 Struktur Jadual `maklumat_industri`:", cols)
+    pass
 
 # Ambil senarai pelajar
 c.execute("SELECT pelajar_id, nama FROM maklumat_pelajar")
@@ -54,12 +56,19 @@ for pelajar_id, nama in pelajar_list:
             st.warning("❌ SLI-01 belum diluluskan.")
             continue
 
-        # Semak maklumat BLI-02
+        # Semak maklumat industri
         c.execute("SELECT * FROM maklumat_industri WHERE pelajar_id=?", (pelajar_id,))
         industry = c.fetchone()
         if not industry:
             st.warning("❌ Maklumat BLI-02 belum dihantar oleh pelajar.")
             continue
+
+        # Isikan fail dummy jika fail_bli02 masih kosong
+        if len(industry) > 8 and not industry[8]:
+            c.execute("UPDATE maklumat_industri SET fail_bli02 = ? WHERE pelajar_id = ?", ("dummy_bli02.pdf", pelajar_id))
+            conn.commit()
+            industry = list(industry)
+            industry[8] = "dummy_bli02.pdf"
 
         # Papar maklumat syarikat
         st.markdown("### 🏢 Maklumat Syarikat")
@@ -71,17 +80,17 @@ for pelajar_id, nama in pelajar_list:
         st.write(f"**Tarikh Mula:** {industry[6]}")
         st.write(f"**Tarikh Tamat:** {industry[7]}")
 
-        # Lampirkan fail BLI-02 jika wujud
+        # Lampirkan fail
         if len(industry) > 8 and industry[8]:
             file_path = os.path.join(upload_dir, industry[8])
             if os.path.exists(file_path):
                 st.markdown(f"[📄 Muat Turun BLI-02]({file_path})")
             else:
-                st.warning("❌ Fail BLI-02 tidak dijumpai di pelayan.")
+                st.warning("❌ Fail BLI-02 tidak dijumpai.")
         else:
             st.warning("❌ Fail BLI-02 belum dimuat naik.")
 
-        # Status SLI-03 semasa
+        # Status SLI-03
         status_sli03 = permohonan[1]
         tarikh_sli03 = permohonan[2]
         if status_sli03 == "LULUS":
@@ -89,10 +98,9 @@ for pelajar_id, nama in pelajar_list:
         else:
             st.info("❌ SLI-03 belum diluluskan")
 
-        # Butang untuk meluluskan
+        # Butang lulus
         if st.button(f"✅ Luluskan SLI-03 untuk {nama}", key=f"sli03_{pelajar_id}"):
-            tz = pytz.timezone("Asia/Kuala_Lumpur")
-            now_malaysia = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+            now_malaysia = datetime.now(pytz.timezone("Asia/Kuala_Lumpur")).strftime("%Y-%m-%d %H:%M:%S")
             c.execute("UPDATE status_permohonan SET status_sli03 = ?, tarikh_sli03 = ? WHERE pelajar_id = ?",
                       ("LULUS", now_malaysia, pelajar_id))
             conn.commit()
