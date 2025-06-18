@@ -11,7 +11,7 @@ if st.session_state.get("user_role") != "pelajar":
     st.stop()
 
 pelajar_id = st.session_state.get("user_id", "")
-template_path = "template/NS BLI-04 Borang Lapor Diri Di Organisasi (1).docx"
+template_path = "templates/NS BLI-04 Borang Lapor Diri Di Organisasi.docx"
 output_path = f"generated/borang_lapor_diri_{pelajar_id}.docx"
 
 os.makedirs("generated", exist_ok=True)
