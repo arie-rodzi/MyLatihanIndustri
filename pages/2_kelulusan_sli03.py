@@ -1,4 +1,7 @@
+from pathlib import Path
 
+# Versi dibaiki: Tambah kolum `tarikh_sli03` jika belum wujud
+sli03_fixed_code = '''
 import streamlit as st
 import sqlite3
 from datetime import datetime
@@ -18,17 +21,22 @@ c = conn.cursor()
 upload_dir = "uploaded/bli02"
 
 # Pastikan jadual wujud
-c.execute("""
+c.execute(\"""
     CREATE TABLE IF NOT EXISTS status_permohonan (
         pelajar_id TEXT PRIMARY KEY,
         status_lulus TEXT,
         tarikh_lulus TEXT,
         status_sli03 TEXT,
-        tarikh_sli03 TEXT,
         status_bli02 TEXT
     )
-""")
+\""")
 conn.commit()
+
+# Tambah kolum tarikh_sli03 jika belum wujud
+try:
+    c.execute("ALTER TABLE status_permohonan ADD COLUMN tarikh_sli03 TEXT")
+except sqlite3.OperationalError:
+    pass  # Kolum mungkin sudah wujud
 
 # Ambil semua pelajar
 c.execute("SELECT pelajar_id, nama FROM maklumat_pelajar")
@@ -82,3 +90,9 @@ for pelajar_id, nama in pelajar_list:
             st.rerun()
 
 conn.close()
+'''
+
+# Simpan fail versi tetap
+file_path = Path("/mnt/data/2_kelulusan_sli03.py")
+file_path.write_text(sli03_fixed_code)
+file_path.name
