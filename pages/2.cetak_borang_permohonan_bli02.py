@@ -1,13 +1,9 @@
 import streamlit as st
 import sqlite3
 from docx import Document
-from io import BytesIO
-from datetime import date
-from docx2pdf import convert
 import os
-from tempfile import NamedTemporaryFile
-from pdf2image import convert_from_path
-from PIL import Image
+from datetime import date
+import base64
 
 # Semakan login
 if st.session_state.get("user_role") != "pelajar":
@@ -23,11 +19,11 @@ pelajar_id = st.session_state.get("user_id", "")
 conn = sqlite3.connect("database/latihan_industri.db")
 c = conn.cursor()
 
-# Semak maklumat pelajar (pastikan kolum betul)
+# Ambil maklumat pelajar
 c.execute("SELECT nama, no_ic, kod_program, email FROM maklumat_pelajar WHERE pelajar_id=?", (pelajar_id,))
 pelajar = c.fetchone()
 
-# Semak status kelulusan penyelaras
+# Ambil maklumat kelulusan
 c.execute("SELECT status_lulus, nama_penyelaras, email_penyelaras, kod_program, tarikh_lulus FROM status_permohonan WHERE pelajar_id=?", (pelajar_id,))
 status = c.fetchone()
 
@@ -44,8 +40,16 @@ nama, ic, program, email = pelajar
 _, nama_penyelaras, email_penyelaras, kod_program, _ = status
 today = date.today().strftime("%Y-%m-%d")
 
-# Buka dan isi template
-doc = Document("templates/NS SLI01_DLI01_BLI02.FIXED.docx")
+# Folder simpan fail
+folder_path = os.path.join("generated", program, "permohonan")
+os.makedirs(folder_path, exist_ok=True)
+docx_path = os.path.join(folder_path, f"permohonan_{pelajar_id}.docx")
+pdf_path = os.path.join(folder_path, f"permohonan_{pelajar_id}.pdf")
+
+# Gantian template
+template_path = "templates/NS SLI01_DLI01_BLI02.FIXED.docx"
+doc = Document(template_path)
+
 for p in doc.paragraphs:
     p.text = p.text.replace("«NOMBOR_ID_PELAJAR»", pelajar_id)
     p.text = p.text.replace("«NOMBOR_KAD_PENGENALAN»", ic)
@@ -60,20 +64,30 @@ for p in doc.paragraphs:
     p.text = p.text.replace("«ALAMAT_EMEL»", email)
     p.text = p.text.replace("«EMEL_PELAJAR»", email)
 
-# Simpan ke fail sementara .docx
-with NamedTemporaryFile(delete=False, suffix=".docx") as tmp_docx:
-    doc.save(tmp_docx.name)
+# Simpan .docx
+doc.save(docx_path)
 
-# Tukar ke PDF
-pdf_path = tmp_docx.name.replace(".docx", ".pdf")
-convert(tmp_docx.name, pdf_path)
+# Papar kandungan
+st.subheader("📝 Pratonton Kandungan Surat Permohonan")
+doc_preview = Document(docx_path)
+for para in doc_preview.paragraphs:
+    st.write(para.text)
 
-# Papar PDF sebagai imej
-images = convert_from_path(pdf_path)
-st.write("### Pratonton Surat Permohonan (PDF)")
-for img in images:
-    st.image(img, use_column_width=True)
+# Muat naik PDF yang dijana oleh pelajar
+st.markdown("### 📤 Muat Naik Surat Permohonan (PDF)")
+uploaded_pdf = st.file_uploader("Sila muat naik fail PDF surat permohonan:", type=["pdf"])
 
-# Muat turun PDF
-with open(pdf_path, "rb") as pdf_file:
-    st.download_button("📥 Muat Turun Surat (PDF)", data=pdf_file, file_name="Surat_Permohonan_LI.pdf", mime="application/pdf")
+if uploaded_pdf:
+    with open(pdf_path, "wb") as f:
+        f.write(uploaded_pdf.read())
+    st.success("✅ PDF berjaya dimuat naik.")
+
+    # Muat turun semula PDF
+    with open(pdf_path, "rb") as f:
+        st.download_button("📥 Muat Turun Surat (PDF)", f, file_name=f"Surat_Permohonan_{pelajar_id}.pdf")
+
+    # Papar inline PDF
+    base64_pdf = base64.b64encode(open(pdf_path, "rb").read()).decode('utf-8')
+    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="1000px"></iframe>'
+    st.markdown("### 📄 Pratonton PDF Dimuat Naik")
+    st.markdown(pdf_display, unsafe_allow_html=True)
